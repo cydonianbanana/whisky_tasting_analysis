@@ -1,0 +1,2 @@
+browser-use==0.1.17
+firecrawl-py==1.8.0
