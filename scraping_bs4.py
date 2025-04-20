@@ -21,21 +21,47 @@ def scrape_whisky_data(url):
         response.raise_for_status()  # HTTPエラーが発生した場合に例外を発生させる
         soup = BeautifulSoup(response.content, "html.parser")
 
-        review_elements = soup.find_all("button", attrs={"data-review-id": True}) #data-review-id属性を持つbutton要素を抽出
+        # ウイスキーの詳細情報を取得
+        whisky_details = {}
+        details_div = soup.find('div', class_='col-span-2 md:col-span-1 w-full')
+        if details_div:
+            for p in details_div.find_all('p'):
+                strong = p.find('strong')
+                if strong:
+                    key = strong.text.strip().replace(':', '')
+                    value = p.text.replace(strong.text, '').strip()
+                    whisky_details[key] = value
 
-        data_list = []
+        # タイトル情報の取得
+        title = soup.find('title').text.split('|')[0].strip()
+        
+        # レビュー情報の取得
+        # data-review-id属性を持つbutton要素を抽出
+        review_elements = soup.find_all("button", attrs={"data-review-id": True})
+        
+        reviews = []
         for review_element in review_elements:
-            data = {}
-            data['data-review-id'] = review_element.get('data-review-id')
-            data['data-nose'] = review_element.get('data-nose')#.replace("\\r"," ")
-            data['data-palate'] = review_element.get('data-palate')
-            data['data-finish'] = review_element.get('data-finish')
-            data['data-comment'] = review_element.get('data-comment')
-            data['data-review-score'] = review_element.get('data-review-score')
-            data = {key: value.replace("\\r", " ") if isinstance(value, str) else value for key, value in data.items()} #文字列置換
-            data_list.append(data)
-
-        return data_list
+            # レビュー情報とウイスキーの詳細情報を結合
+            review = {
+                'review-id': review_element.get('data-review-id', '').replace("\\r", " "),
+                'title': title,
+                # ウイスキーの詳細情報を直接追加
+                'ABV': whisky_details.get('ABV', ''),
+                'Age': whisky_details.get('Age', ''),
+                'Style': whisky_details.get('Style', ''),
+                'Country': whisky_details.get('Country', ''),
+                'Region': whisky_details.get('Region', ''),
+                'Bottling': whisky_details.get('Bottling', ''),
+                # レビュー情報を追加
+                'score': review_element.get('data-review-score', ''),
+                'nose': review_element.get('data-nose', '').replace("\\r", " "),
+                'palate': review_element.get('data-palate', '').replace("\\r", " "),
+                'finish': review_element.get('data-finish', '').replace("\\r", " "),
+                'comment': review_element.get('data-comment', '').replace("\\r", " "),
+                'url': url,
+            }
+            reviews.append(review)
+        return reviews
     except requests.exceptions.RequestException as e:
         print(f"Error fetching URL: {e}")
         return None
@@ -77,14 +103,15 @@ if __name__ == "__main__":
     sitemap_path = "sitemap.out"
     urls = read_urls_from_sitemap(sitemap_path)
     
-    if not urls:
-        print("URLが見つかりませんでした。")
-    else:
-        for url in urls:
-            time.sleep(1)
-            scraped_data = scrape_whisky_data(url)
-            if scraped_data:
-                for i in scraped_data:
-                    print(json.dumps(i, indent=4))
-            else:
-                print(f"スクレイピングに失敗しました: {url}")
+    for url in urls:
+        if not urls:
+            print("URLが見つかりませんでした。")
+            continue
+        time.sleep(1)
+        scraped_data = scrape_whisky_data(url)
+        if scraped_data:
+            for i in scraped_data:
+                with open('reviews.json', 'w') as f:
+                    f.write(json.dumps(i, indent=4))
+        else:
+            print(f"スクレイピングに失敗しました: {url}")
