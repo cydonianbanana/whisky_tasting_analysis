@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import ast
 import time
+import csv
 
 def scrape_whisky_data(url):
     """
@@ -46,6 +47,7 @@ def scrape_whisky_data(url):
                 'review-id': review_element.get('data-review-id', '').replace("\\r", " "),
                 'title': title,
                 # ウイスキーの詳細情報を直接追加
+                'Distillery': 'NaN',
                 'ABV': whisky_details.get('ABV', ''),
                 'Age': whisky_details.get('Age', ''),
                 'Style': whisky_details.get('Style', ''),
@@ -53,12 +55,12 @@ def scrape_whisky_data(url):
                 'Region': whisky_details.get('Region', ''),
                 'Bottling': whisky_details.get('Bottling', ''),
                 # レビュー情報を追加
-                'score': review_element.get('data-review-score', ''),
-                'nose': review_element.get('data-nose', '').replace("\\r", " "),
-                'palate': review_element.get('data-palate', '').replace("\\r", " "),
-                'finish': review_element.get('data-finish', '').replace("\\r", " "),
-                'comment': review_element.get('data-comment', '').replace("\\r", " "),
-                'url': url,
+                'Score': review_element.get('data-review-score', ''),
+                'Nose': review_element.get('data-nose', '').replace("\\r", " "),
+                'Palate': review_element.get('data-palate', '').replace("\\r", " "),
+                'Finish': review_element.get('data-finish', '').replace("\\r", " "),
+                'Comment': review_element.get('data-comment', '').replace("\\r", " "),
+                'URL': url,
             }
             reviews.append(review)
         return reviews
@@ -99,19 +101,40 @@ def read_urls_from_sitemap(file_path):
         print(f"エラー: ファイルの読み込み中に問題が発生しました: {e}")
         return []
 
+def find_distillery(title):
+    """
+    タイトルから蒸留所名を特定します。
+    """
+    try:
+        with open('distilleries_scotland.csv', 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row['Distillery'].lower() in title.lower():
+                    return row['Distillery']
+    except Exception as e:
+        print(f"蒸留所データの読み込み中にエラーが発生しました: {e}")
+    return None
+
 if __name__ == "__main__":
     sitemap_path = "sitemap.out"
     urls = read_urls_from_sitemap(sitemap_path)
     
+    all_reviews = []  # すべてのレビューを保存するリスト
+    
     for url in urls:
-        if not urls:
-            print("URLが見つかりませんでした。")
-            continue
         time.sleep(1)
-        scraped_data = scrape_whisky_data(url)
-        if scraped_data:
-            for i in scraped_data:
-                with open('reviews.json', 'w') as f:
-                    f.write(json.dumps(i, indent=4))
+        reviews = scrape_whisky_data(url)
+        if reviews:
+            for review in reviews:
+                # スコットランドのウイスキーの場合、蒸留所名を追加
+                if review['Country'] == 'Scotland':
+                    distillery = find_distillery(review['title'])
+                    if distillery:
+                        review['Distillery'] = distillery
+                all_reviews.append(review)
         else:
             print(f"スクレイピングに失敗しました: {url}")
+    
+    # すべてのレビューをJSONファイルに書き込む
+    with open('reviews.json', 'w', encoding='utf-8') as f:
+        json.dump(all_reviews, f, indent=4, ensure_ascii=False)
