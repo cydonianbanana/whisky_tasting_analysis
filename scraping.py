@@ -44,8 +44,8 @@ def scrape_whisky_data(url):
         for review_element in review_elements:
             # レビュー情報とウイスキーの詳細情報を結合
             review = {
-                'review-id': review_element.get('data-review-id', '').replace("\\r", " "),
-                'title': title,
+                'Review-id': review_element.get('data-review-id', '').replace("\\r", " "),
+                'Title': title,
                 # ウイスキーの詳細情報を直接追加
                 'Distillery': 'N/A',
                 'ABV': whisky_details.get('ABV', ''),
@@ -106,7 +106,7 @@ def find_distillery(title):
     タイトルから蒸留所名を特定します。
     """
     try:
-        with open('data_distilleries_scotland.csv', 'r', encoding='utf-8') as f:
+        with open('data_distilleries.csv', 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row['Distillery'].lower() in title.lower():
@@ -128,7 +128,7 @@ if __name__ == "__main__":
             for review in reviews:
                 # スコットランドのウイスキーの場合、蒸留所名を追加
                 if review['Country'] == 'Scotland':
-                    distillery = find_distillery(review['title'])
+                    distillery = find_distillery(review['Title'])
                     if distillery:
                         review['Distillery'] = distillery
                 all_reviews.append(review)

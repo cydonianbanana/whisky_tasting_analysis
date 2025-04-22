@@ -4,15 +4,9 @@ import pandas as pd
 from openai import OpenAI
 
 def get_review_data():
-    with open('reviews.json', 'r', encoding='utf-8') as f:
+    with open('scraped_reviews.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
     df = pd.DataFrame(data)
-    return df
-
-def convert_numeric_columns(df):
-    numeric_columns = ['ABV', 'Age', 'Score']
-    for col in numeric_columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
     return df
 
 def get_embedding(text):
@@ -26,7 +20,7 @@ def get_embedding(text):
 
 def save_embedding_dict(df):
     embedding_dict = df.apply(lambda row: {
-        'title': row['title'],
+        'Title': row['Title'],
         'Nose_embedding': row['Nose_embedding'],
         'Palate_embedding': row['Palate_embedding'],
         'Finish_embedding': row['Finish_embedding'],
@@ -42,9 +36,6 @@ if __name__ == "__main__":
 
     # DataFrameの作成
     df = get_review_data()
-
-    # 数値カラムの変換
-    df = convert_numeric_columns(df)
 
     # テイスティングコメントのテキストをベクトル化
     for column in ['Nose', 'Palate', 'Finish', 'Comment']:
