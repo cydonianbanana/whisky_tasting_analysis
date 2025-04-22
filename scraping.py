@@ -47,7 +47,7 @@ def scrape_whisky_data(url):
                 'review-id': review_element.get('data-review-id', '').replace("\\r", " "),
                 'title': title,
                 # ウイスキーの詳細情報を直接追加
-                'Distillery': 'NaN',
+                'Distillery': 'N/A',
                 'ABV': whisky_details.get('ABV', ''),
                 'Age': whisky_details.get('Age', ''),
                 'Style': whisky_details.get('Style', ''),
@@ -106,7 +106,7 @@ def find_distillery(title):
     タイトルから蒸留所名を特定します。
     """
     try:
-        with open('distilleries_scotland.csv', 'r', encoding='utf-8') as f:
+        with open('data_distilleries_scotland.csv', 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row['Distillery'].lower() in title.lower():
@@ -136,5 +136,5 @@ if __name__ == "__main__":
             print(f"スクレイピングに失敗しました: {url}")
     
     # すべてのレビューをJSONファイルに書き込む
-    with open('reviews.json', 'w', encoding='utf-8') as f:
+    with open('scraped_reviews.json', 'w', encoding='utf-8') as f:
         json.dump(all_reviews, f, indent=4, ensure_ascii=False)
