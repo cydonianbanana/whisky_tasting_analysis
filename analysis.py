@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 import plotly.express as px
 
 def get_review_data():
@@ -30,6 +31,120 @@ def get_embedded_dict():
         embedded_dict = json.load(f)
     return embedded_dict
 
+def plot_3d_scatter(df, column, embeddings):
+    # PCAによる次元削減
+    pca = PCA(n_components=3)
+    reduced_embeddings = pca.fit_transform(embeddings)
+
+    # 結果をDataFrameに追加
+    df['x'] = reduced_embeddings[:, 0]
+    df['y'] = reduced_embeddings[:, 1]
+    df['z'] = reduced_embeddings[:, 2]
+
+    # 3Dプロットの作成
+    fig = px.scatter_3d(
+        df,
+        x='x',
+        y='y',
+        z='z',
+        color='Score',
+        hover_data=['Title', column],
+        title=f'ウイスキーの{column}の3D可視化',
+        opacity=0.7  # 透明度を設定
+    )
+
+    # 点のサイズを小さく設定
+    fig.update_traces(marker=dict(size=1))
+    # HTMLファイルとして出力
+    fig.write_html(f"plot_{column.lower()}_3d.html")
+
+def plot_2d_scatter(df, column, embeddings):
+    # PCAによる次元削減
+    pca = PCA(n_components=2)
+    reduced_embeddings = pca.fit_transform(embeddings)
+
+    # 結果をDataFrameに追加
+    df['x'] = reduced_embeddings[:, 0]
+    df['y'] = reduced_embeddings[:, 1]
+
+    # 2Dプロットの作成
+    fig = px.scatter(
+        df,
+        x='x',
+        y='y',
+        color='Score',
+        hover_data=['Title', column],
+        title=f'ウイスキーの{column}の2D可視化',
+        opacity=0.7  # 透明度を設定
+    )
+
+    # 点のサイズを小さく設定
+    fig.update_traces(marker=dict(size=5))
+    # HTMLファイルとして出力
+    fig.write_html(f"plot_{column.lower()}_2d.html")
+
+def plot_2d_scatter_with_clusters(df, column, embeddings, n_clusters=5):
+    # PCAによる次元削減
+    pca = PCA(n_components=2)
+    reduced_embeddings = pca.fit_transform(embeddings)
+
+    # K-meansクラスタリング
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    clusters = kmeans.fit_predict(reduced_embeddings)
+
+    # 結果をDataFrameに追加
+    df['x'] = reduced_embeddings[:, 0]
+    df['y'] = reduced_embeddings[:, 1]
+    df['Cluster'] = clusters
+
+    # 2Dプロットの作成
+    fig = px.scatter(
+        df,
+        x='x',
+        y='y',
+        color='Cluster',  # クラスターで色分け
+        hover_data=['Title', column, 'Score'],
+        title=f'ウイスキーの{column}のクラスタリング分析',
+        opacity=0.7  # 透明度を設定
+    )
+
+    # 点のサイズを小さく設定
+    fig.update_traces(marker=dict(size=5))
+
+    # HTMLファイルとして出力
+    fig.write_html(f"plot_{column.lower()}_clusters.html")
+
+def plot_2d_scatter_scotch_single_malt(df, column, embeddings):
+    # スコットランドのシングルモルトウイスキーに限定
+    mask = (df['Style'] == 'Single Malt') & (df['Country'] == 'Scotland')
+    df_filtered = df[mask].copy()
+    embeddings_filtered = embeddings[mask]
+
+    # PCAによる次元削減
+    pca = PCA(n_components=2)
+    reduced_embeddings = pca.fit_transform(embeddings_filtered)
+
+    # 結果をDataFrameに追加
+    df_filtered['x'] = reduced_embeddings[:, 0]
+    df_filtered['y'] = reduced_embeddings[:, 1]
+
+    # 2Dプロットの作成
+    fig = px.scatter(
+        df_filtered,
+        x='x',
+        y='y',
+        color='Region',  # リージョンで色分け
+        hover_data=['Title', column, 'Score'],
+        title=f'スコットランドシングルモルトウイスキーの{column}の2D可視化',
+        opacity=0.7  # 透明度を設定
+    )
+
+    # 点のサイズを小さく設定
+    fig.update_traces(marker=dict(size=5))
+
+    # HTMLファイルとして出力
+    fig.write_html(f"plot_scotch_single_malt_{column.lower()}_2d.html")
+
 if __name__ == "__main__":
 
     # DataFrameの作成
@@ -48,30 +163,8 @@ if __name__ == "__main__":
     for column in columns:
         # ベクトルをnumpy配列に変換
         embeddings = np.array([item[f'{column}_embedding'] for item in embedded_dict])
-        
-        # PCAによる次元削減
-        pca = PCA(n_components=3)
-        reduced_embeddings = pca.fit_transform(embeddings)
+        #plot_3d_scatter(df, column, embeddings)
+        #plot_2d_scatter(df, column, embeddings)
+        #plot_2d_scatter_with_clusters(df, column, embeddings)
+        plot_2d_scatter_scotch_single_malt(df, column, embeddings)
 
-        # 結果をDataFrameに追加
-        df['x'] = reduced_embeddings[:, 0]
-        df['y'] = reduced_embeddings[:, 1]
-        df['z'] = reduced_embeddings[:, 2]
-
-        # 3Dプロットの作成
-        fig = px.scatter_3d(
-            df,
-            x='x',
-            y='y',
-            z='z',
-            color='Score',
-            hover_data=['Title', column],
-            title=f'ウイスキーの{column}の3D可視化',
-            opacity=0.7  # 透明度を設定
-        )
-
-        # 点のサイズを小さく設定
-        fig.update_traces(marker=dict(size=1))
-
-        # HTMLファイルとして出力
-        fig.write_html(f"plot_{column.lower()}_3d.html")
